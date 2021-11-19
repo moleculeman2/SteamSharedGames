@@ -1,49 +1,72 @@
 import com.google.gson.*;
-import com.lukaspradel.steamapi.core.exception.SteamApiException;
-import com.lukaspradel.steamapi.data.json.friendslist.Friend;
-import com.lukaspradel.steamapi.data.json.friendslist.GetFriendList;
-import com.lukaspradel.steamapi.data.json.playersummaries.GetPlayerSummaries;
-import com.lukaspradel.steamapi.webapi.client.SteamWebApiClient;
-import com.lukaspradel.steamapi.webapi.request.GetFriendListRequest;
-import com.lukaspradel.steamapi.webapi.request.GetPlayerSummariesRequest;
-import com.lukaspradel.steamapi.webapi.request.builders.SteamWebApiRequestFactory;
+
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public class SteamSharedGamesApp {
-    public static void main(String[] args) throws IOException, SteamApiException {
+    public static void main(String[] args) throws IOException, InterruptedException {
 
         String steamKey = "***REMOVED***";
         String yourId = "***REMOVED***";
-        String steamIdFriend = "xxxxx";
+        String steamFriendId1 = "***REMOVED***"; //***REMOVED***'s ID
+        String steamFriendId2 = "***REMOVED***"; //***REMOVED***'s ID
+        List<String> steamIdsList = Arrays.asList(yourId, steamFriendId1, steamFriendId2);
         String getPlayerSummary = "http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key="+steamKey+"&steamids="+yourId;
         String getFriendList = "http://api.steampowered.com/ISteamUser/GetFriendList/v0001/?key="+steamKey+"&steamid="+yourId+"&relationship=friend";
         String getOwnedGames = "http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key="+steamKey+"&steamid="+yourId+"&include_appinfo=true&format=json";
         String getPlayerAchievements = "http://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v0001/?appid=440&key="+steamKey+"&steamid="+yourId;
-        /**
-        SteamWebApiClient client = new SteamWebApiClient.SteamWebApiClientBuilder(steamKey).build();
-        GetFriendListRequest request = SteamWebApiRequestFactory.createGetFriendListRequest(yourId);
-        GetFriendList getFriendList = client.<GetFriendList> processRequest(request);
-        System.out.println(getFriendList.toString());
-        List<Friend> friendsArray = getFriendList.getFriendslist().getFriends();
-        for (Friend f: friendsArray) {
-            System.out.println(f.getSteamid());
-            GetPlayerSummariesRequest request1 = SteamWebApiRequestFactory.createGetPlayerSummariesRequest(Collections.singletonList(f.getSteamid()));
-            GetPlayerSummaries getPlayerSummaries = client.<GetPlayerSummaries> processRequest(request1);
+        FinalList finalList = new FinalList();
+
+        for (String e: steamIdsList) {
+            String sURL = "http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key="+steamKey+"&steamid="+e+"&include_appinfo=true&format=json";;
+            URL url = new URL(sURL);
+            URLConnection request = url.openConnection();
+            request.connect();
+
+            JsonElement root = JsonParser.parseReader(new InputStreamReader((InputStream) request.getContent())); //Convert the input stream to a json element
+            JsonObject rootObj = root.getAsJsonObject(); //May be an array, may be an object.
+            String json = rootObj.toString();
+            GsonBuilder builder = new GsonBuilder();
+            builder.setPrettyPrinting();
+            Gson gson = builder.create();
+            OwnedGames ownedGames = gson.fromJson(json, OwnedGames.class);
+            finalList.addOwnedGames(ownedGames);
+            json = gson.toJson(ownedGames);
         }
-        //allFriends = friendsList.getFriends()
+
+        //call method to parse owned games for both and create new list
+        finalList.SharedOwnedGames();
+
+        /**
+        //run achievement command for all ids, store in list like allGamesList
+        for (String e: steamIdsList) {
+            String sURL = getPlayerAchievements;
+            URL url = new URL(sURL);
+            URLConnection request = url.openConnection();
+            request.connect();
+
+            JsonElement root = JsonParser.parseReader(new InputStreamReader((InputStream) request.getContent())); //Convert the input stream to a json element
+            JsonObject rootObj = root.getAsJsonObject(); //May be an array, may be an object.
+            String json = rootObj.toString();
+            GsonBuilder builder = new GsonBuilder();
+            builder.setPrettyPrinting();
+            Gson gson = builder.create();
+            PlayerAchievements playerAchievements = gson.fromJson(json, PlayerAchievements.class);
+            json = gson.toJson(playerAchievements);
+            //json = gson.toJson(ownedGames);
+        }
+
+        finalList.SharedAchievements();
         **/
 
-
-        String sURL = getPlayerAchievements;
+        /**
+        String sURL = getOwnedGames;
         URL url = new URL(sURL);
         URLConnection request = url.openConnection();
         request.connect();
@@ -58,115 +81,140 @@ public class SteamSharedGamesApp {
         builder.setPrettyPrinting();
 
         Gson gson = builder.create();
-
-        PlayerAchievements playerAchievements = gson.fromJson(json, PlayerAchievements.class);
-        System.out.println(playerAchievements);
-
+        //PlayerAchievements playerAchievements = gson.fromJson(json, PlayerAchievements.class);
+        //json = gson.toJson(playerAchievements);
+        OwnedGames playerAchievements = gson.fromJson(json, OwnedGames.class);
         json = gson.toJson(playerAchievements);
         System.out.println(json);
+        **/
 
+    }
+}
+
+class FinalList{
+    List<OwnedGames> ownedGamesList = new ArrayList<OwnedGames>();
+    List<PlayerAchievements> playerAchievementsList = new ArrayList<PlayerAchievements>();
+    List<String> steamIdsList = new ArrayList<String>();
+    List<String> potentialErrors = new ArrayList<String>();
+
+    List<HashSet<String>> sharedGameNames = new ArrayList<HashSet<String>>();
+    HashMap<String, String> finalGameList = new HashMap<>();
+    List<OwnedGames.Response> allGamesList = new ArrayList<OwnedGames.Response>();
+    List<PlayerAchievements.PlayerStats> allAchievementsList = new ArrayList<PlayerAchievements.PlayerStats>();
+    public FinalList(){}
+
+    public void SharedOwnedGames() throws IOException, InterruptedException {
+        //gets the games list from each OwnedGames and puts em in a list
+        for (int i = 0; i < ownedGamesList.size(); i++) {
+            allGamesList.add(ownedGamesList.get(i).response);
+            sharedGameNames.add(new HashSet<String>());
+        }
+        //loops through each games list and puts them in hashmap (doesnt allow dupes)
+        for (int i = 0; i < allGamesList.size(); i++) {
+            for (int j = 0; j < allGamesList.get(i).games.size(); j++) {
+                sharedGameNames.get(i).add(allGamesList.get(i).games.get(j).appid.concat("~").concat(allGamesList.get(i).games.get(j).name));
+            }
+        }
+
+        for (int i = 0; i < sharedGameNames.size(); i++) {
+            sharedGameNames.get(0).retainAll(sharedGameNames.get(i));
+        }
+        for ( String s: sharedGameNames.get(0)) {
+            finalGameList.put(s.substring(0,s.indexOf("~")), s.substring(s.indexOf("~")+1));
+        }
+
+        System.out.println("Before coop sorting, Games hashmap has size of: " + sharedGameNames.get(0).size());
+        //iterates through shared games, searches steam for coop tag, removes if not there
+        for (Map.Entry<String, String> entry : finalGameList.entrySet()){
+            System.out.println(entry.getKey() + " : " + entry.getValue());
+        }
+
+        HashMap<String, String> removed = new HashMap<>();
+
+        Iterator<Map.Entry<String, String>> entries = finalGameList.entrySet().iterator();
+        while (entries.hasNext()){
+            Map.Entry<String, String> entry = entries.next();
+            //search for tags (multiplayer/coop), remove if not there "https://store.steampowered.com/api/appdetails?appids=xxxx"
+            String sURL = "https://store.steampowered.com/api/appdetails?appids="+entry.getKey();
+            URL url = new URL(sURL);
+            URLConnection request = url.openConnection();
+            request.connect();
+            JsonElement root = JsonParser.parseReader(new InputStreamReader((InputStream) request.getContent())); //Convert the input stream to a json element
+            JsonObject rootObj = root.getAsJsonObject(); //May be an array, may be an object.
+            String json = rootObj.toString();
+            if ((!json.contains("Co-op") && !json.contains("Multi-player") && !json.contains("PvP")) || !json.contains("type\":\"game")){
+                if (json.contains("success\":false")) {potentialErrors.add(entry.getValue());}
+                removed.put(entry.getKey(), entry.getValue());
+                //System.out.println(entry.getValue());
+                //System.out.println(json);
+                TimeUnit.SECONDS.sleep(10);
+                entries.remove();
+            }
+        }
+        System.out.println("After coop sorting, Games hashmap has size of: " + sharedGameNames.size());
+        for (String s: finalGameList.values()){
+            System.out.println(s);
+        }
+    }
+
+    public void SharedAchievements() {
+        //gets the games list from each OwnedGames and puts em in a list
+        for (int i = 0; i < playerAchievementsList.size(); i++) {
+            allAchievementsList.add((PlayerAchievements.PlayerStats) playerAchievementsList.get(i).playerstats.achievements);
+        }
+    }
+
+    public List<OwnedGames> getOwnedGamesList() {
+        return ownedGamesList;
+    }
+
+    public void setOwnedGamesList(List<OwnedGames> ownedGamesList) {
+        this.ownedGamesList = ownedGamesList;
+    }
+
+    public void addOwnedGames(OwnedGames ownedGames){
+        this.ownedGamesList.add(ownedGames);
+    }
+
+    public List<String> getSteamIdsList() {
+        return steamIdsList;
+    }
+
+    public void setSteamIdsList(List<String> steamIdsList) {
+        this.steamIdsList = steamIdsList;
     }
 }
 
 class PlayerAchievements{
-    public Playerstats playerstats;
+    public PlayerStats playerstats;
 
-}
+    class PlayerStats {
+        String steamID;
+        String gameName;
+        List<Achievements> achievements;
 
-class Playerstats{
-    String steamID;
-    String gameName;
-    ArrayList<Achievements> achievements;
-}
+        class Achievements{
+            String apiname;
+            String achieved;
+            String unlocktime;
+        }
+    }
 
-class Achievements{
-    String apiname;
-    String achieved;
-    String unlocktime;
 }
 
 class OwnedGames{
-    public int game_count;
-    private String[] games;
-    private String appid;
-    private String name;
-    private String playtime_2weeks;
-    private String playtime_forever;
-    private String img_icon_url;
-    private String img_logo_url;
-    private String has_community_visible_stats;
+    public Response response;
 
-    public OwnedGames(){}
+    class Response{
+        String game_count;
+        public List<Games> games;
 
-    public int getGame_count() {
-        return game_count;
-    }
-
-    public void setGame_count(int game_count) {
-        this.game_count = game_count;
-    }
-
-    public String[] getGames() {
-        return games;
-    }
-
-    public void setGames(String[] games) {
-        this.games = games;
-    }
-
-    public String getAppid() {
-        return appid;
-    }
-
-    public void setAppid(String appid) {
-        this.appid = appid;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getPlaytime_2weeks() {
-        return playtime_2weeks;
-    }
-
-    public void setPlaytime_2weeks(String playtime_2weeks) {
-        this.playtime_2weeks = playtime_2weeks;
-    }
-
-    public String getPlaytime_forever() {
-        return playtime_forever;
-    }
-
-    public void setPlaytime_forever(String playtime_forever) {
-        this.playtime_forever = playtime_forever;
-    }
-
-    public String getImg_icon_url() {
-        return img_icon_url;
-    }
-
-    public void setImg_icon_url(String img_icon_url) {
-        this.img_icon_url = img_icon_url;
-    }
-
-    public String getImg_logo_url() {
-        return img_logo_url;
-    }
-
-    public void setImg_logo_url(String img_logo_url) {
-        this.img_logo_url = img_logo_url;
-    }
-
-    public String getHas_community_visible_stats() {
-        return has_community_visible_stats;
-    }
-
-    public void setHas_community_visible_stats(String has_community_visible_stats) {
-        this.has_community_visible_stats = has_community_visible_stats;
+        class Games{
+            String appid;
+            String name;
+            String playtime_forever;
+            String img_icon_url;
+            String img_logo_url;
+        }
     }
 }
