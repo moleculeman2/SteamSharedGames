@@ -34,7 +34,7 @@ while [ -h "$PRG" ] ; do
     else
         PRG=`dirname "$PRG"`"/$link"
     fi
-***REMOVED***e
+done
 SAVED="`pwd`"
 cd "`dirname \"$PRG\"`/" >/dev/null
 APP_HOME="`pwd -P`"
@@ -139,7 +139,7 @@ if [ "$cygwin" = "true" -o "$msys" = "true" ] ; then
     for dir in $ROOTDIRSRAW ; do
         ROOTDIRS="$ROOTDIRS$SEP$dir"
         SEP="|"
-    ***REMOVED***e
+    done
     OURCYGPATTERN="(^($ROOTDIRS))"
     # Add a user-defined pattern to the cygpath arguments
     if [ "$GRADLE_CYGPATTERN" != "" ] ; then
@@ -157,7 +157,7 @@ if [ "$cygwin" = "true" -o "$msys" = "true" ] ; then
             eval `echo args$i`="\"$arg\""
         fi
         i=`expr $i + 1`
-    ***REMOVED***e
+    done
     case $i in
         0) set -- ;;
         1) set -- "$args0" ;;
@@ -174,7 +174,7 @@ fi
 
 # Escape application args
 save () {
-    for i do printf %s\\n "$i" | sed "s/'/'\\\\''/g;1s/^/'/;\$s/\$/' \\\\/" ; ***REMOVED***e
+    for i do printf %s\\n "$i" | sed "s/'/'\\\\''/g;1s/^/'/;\$s/\$/' \\\\/" ; done
     echo " "
 }
 APP_ARGS=`save "$@"`

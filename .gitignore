@@ -1,3 +1,4 @@
 # Project exclude paths
 /.gradle/
 /out/
+/Main/src/config.json
