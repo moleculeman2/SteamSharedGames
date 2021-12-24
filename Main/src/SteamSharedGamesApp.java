@@ -1,6 +1,10 @@
 import com.google.gson.*;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
+import org.apache.commons.io.output.UnsynchronizedByteArrayOutputStream;
+import org.apache.logging.log4j.LogManager;
+import org.apache.commons.math3.util.ArithmeticUtils;
+import org.apache.commons.io.IOUtils;
 
 import javax.swing.*;
 import java.io.IOException;
@@ -22,8 +26,8 @@ public class SteamSharedGamesApp {
         List<String> steamUsernameList = new ArrayList<String>();
         List<String> steamIdsList = new ArrayList<String>();
         steamIdsList.add(idConfig.yourId);
-        steamIdsList.add(idConfig.friendIds.get(2));
-        steamIdsList.add(idConfig.friendIds.get(4));
+        steamIdsList.add(idConfig.friendIds.get(0));
+        steamIdsList.add(idConfig.friendIds.get(1));
 
         GameListBuilder gameListBuilder = new GameListBuilder(steamIdsList, idConfig);
 
